@@ -1,25 +1,46 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Header from '@/components/layout/header'
 import PostLoadForm from '@/components/shipper/post-load-form'
 import ActiveLoadItem from '@/components/shipper/active-load-item'
-import { mockShipperLoads } from '@/lib/mock-data'
 
 export default function ShipperDashboard() {
-  const [loads, setLoads] = useState(mockShipperLoads)
+  const [loads, setLoads] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const handlePostLoad = (data: any) => {
-    const newLoad = {
-      id: `SL${String(loads.length + 1).padStart(3, '0')}`,
-      from: data.from,
-      to: data.to,
-      weight: `${data.weight} tons`,
-      price: `₹${data.price}`,
-      status: 'Pending' as const,
-      postedAt: 'Just now',
+  const fetchLoads = async () => {
+    try {
+      const res = await fetch('/api/loads')
+      const data = await res.json()
+      // Filter for shipper loads we posted here or just show all for demo
+      setLoads(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoading(false)
     }
-    setLoads([newLoad, ...loads])
+  }
+
+  useEffect(() => {
+    fetchLoads()
+    const interval = setInterval(fetchLoads, 5000) // Poll every 5s for real-time feel
+    return () => clearInterval(interval)
+  }, [])
+
+  const handlePostLoad = async (data: any) => {
+    try {
+      const res = await fetch('/api/loads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+      if (res.ok) {
+        fetchLoads() // Refresh
+      }
+    } catch (e) {
+      console.error(e)
+    }
   }
 
   return (
@@ -32,7 +53,9 @@ export default function ShipperDashboard() {
         <div>
           <h2 className="text-2xl font-bold mb-6">Active Loads</h2>
 
-          {loads.length > 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12"><p className="text-muted-foreground">Loading...</p></div>
+          ) : loads.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {loads.map((load) => (
                 <ActiveLoadItem

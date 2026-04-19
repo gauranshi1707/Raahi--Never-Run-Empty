@@ -14,6 +14,7 @@ interface LoadCardProps {
   price: string
   timeEstimate: string
   tag: string
+  onAccept?: () => void
 }
 
 export default function LoadCard({
@@ -26,6 +27,7 @@ export default function LoadCard({
   price,
   timeEstimate,
   tag,
+  onAccept,
 }: LoadCardProps) {
   return (
     <div className="bg-card border border-border rounded-lg p-4 hover:border-accent/50 transition-colors">
@@ -66,7 +68,10 @@ export default function LoadCard({
         </div>
       </div>
 
-      <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+      <Button 
+        onClick={onAccept}
+        className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+      >
         Accept Load
       </Button>
     </div>
