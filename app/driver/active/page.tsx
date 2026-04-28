@@ -5,7 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import Header from '@/components/layout/header'
 import NextLoadCard from '@/components/driver/next-load-card'
-import RouteMap from '@/components/maps/route-map'
+import dynamic from "next/dynamic";
+
+const RouteMap = dynamic(() => import("../../../components/maps/route-map"), {
+  ssr: false,
+});
 import { MapPin, Navigation, Truck, Loader2 } from 'lucide-react'
 
 // Mock simple distance calculation on client side if needed, or we just rely on store logic but since we fetch from API:
