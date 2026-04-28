@@ -4,6 +4,7 @@ import { MapPin, Radio, User, Settings, LogOut, Truck, Package, Loader2 } from '
 import ThemeToggle from './theme-toggle'
 import Link from 'next/link'
 import { useLocation } from '@/hooks/use-location'
+import { useUserStore } from '@/hooks/use-user-store'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ interface HeaderProps {
 
 export default function Header({ userRole = 'driver' }: HeaderProps) {
   const { displayLocation, loading } = useLocation()
+  const { getDisplayName } = useUserStore()
   
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40">
@@ -57,7 +59,7 @@ export default function Header({ userRole = 'driver' }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col gap-1">
-                  <p className="text-sm font-medium">Rajesh Kumar</p>
+                  <p className="text-sm font-medium">{getDisplayName()}</p>
                   <p className="text-xs text-muted-foreground">
                     {userRole === 'driver' ? 'Driver' : 'Shipper'}
                   </p>
