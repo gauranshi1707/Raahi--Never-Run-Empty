@@ -42,12 +42,12 @@ export default function UserDetailsStep({ onNext, onBack }: UserDetailsStepProps
     if (value.length === 10) clearErrors('phone')
   }
 
-  const generateOtp = () => {
-    const otp = Math.floor(1000 + Math.random() * 9000).toString()
-    setGeneratedOtp(otp)
-    console.log('OTP:', otp)
-    return otp
-  }
+ const generateOtp = () => {
+  const otp = Math.floor(1000 + Math.random() * 9000).toString()
+  setGeneratedOtp(otp)
+  alert(`Your OTP is ${otp}`)
+  return otp
+}
 
   const onDetailsSubmit = async (data: { name: string; phone: string }) => {
     if (data.phone.length !== 10) {
