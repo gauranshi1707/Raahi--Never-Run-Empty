@@ -23,9 +23,9 @@ export default function Header({ userRole = 'driver' }: HeaderProps) {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href={userRole === 'driver' ? '/driver' : '/shipper'} className="flex items-center gap-2">
+        <Link href={userRole === 'driver' ? '/driver' : '/shipper'} className="flex items-baseline gap-2">
           <span className="text-[26px] font-bold text-accent">Raahi</span>
-          <span className="text-xs text-muted-foreground font-normal hidden sm:inline">Never Run Empty</span>
+          <span className="text-sm text-muted-foreground relative top-[3px] hidden sm:inline">Never Run Empty</span>
         </Link>
         
         {userRole === 'driver' && (
