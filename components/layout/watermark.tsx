@@ -8,19 +8,19 @@ export default function Watermark() {
       {/* Light mode: show light background logo */}
       <Image
         src="/images/raahi-logo-light.jpeg"
-        alt="Raahi"
-        width={400}
-        height={400}
-        className="block dark:hidden object-contain"
+        alt=""
+        width={800}
+        height={800}
+        className="block dark:hidden object-contain w-[65vw] max-w-3xl"
         priority
       />
       {/* Dark mode: show dark background logo */}
       <Image
         src="/images/raahi-logo-dark.png"
-        alt="Raahi"
-        width={400}
-        height={400}
-        className="hidden dark:block object-contain"
+        alt=""
+        width={800}
+        height={800}
+        className="hidden dark:block object-contain w-[65vw] max-w-3xl"
         priority
       />
     </div>

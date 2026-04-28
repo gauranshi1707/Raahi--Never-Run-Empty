@@ -130,7 +130,7 @@
 @layer components {
   .watermark {
     @apply fixed inset-0 flex items-center justify-center pointer-events-none;
-    opacity: 0.06;
+    opacity: 0.1;
     z-index: 0;
   }
 }

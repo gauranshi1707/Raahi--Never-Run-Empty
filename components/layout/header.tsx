@@ -1,9 +1,10 @@
 'use client'
 
-import { MapPin, Radio, User, Settings, LogOut, Truck, Package } from 'lucide-react'
+import { MapPin, Radio, User, Settings, LogOut, Truck, Package, Loader2 } from 'lucide-react'
 import ThemeToggle from './theme-toggle'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useLocation } from '@/hooks/use-location'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,34 +19,39 @@ interface HeaderProps {
 }
 
 export default function Header({ userRole = 'driver' }: HeaderProps) {
+  const { displayLocation, loading } = useLocation()
+  
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href={userRole === 'driver' ? '/driver' : '/shipper'} className="flex items-center gap-2">
+        <Link href={userRole === 'driver' ? '/driver' : '/shipper'} className="flex items-center mr-4">
           {/* Light mode logo */}
           <Image
             src="/images/raahi-logo-light.jpeg"
             alt="Raahi"
-            width={44}
-            height={44}
+            width={36}
+            height={36}
             className="block dark:hidden rounded-lg object-contain"
           />
           {/* Dark mode logo */}
           <Image
             src="/images/raahi-logo-dark.png"
             alt="Raahi"
-            width={44}
-            height={44}
+            width={36}
+            height={36}
             className="hidden dark:block rounded-lg object-contain"
           />
-          <span className="text-2xl font-bold text-accent">Raahi</span>
         </Link>
         
         {userRole === 'driver' && (
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-accent" />
-              <span>Mumbai, MH</span>
+            <div className="flex items-center gap-2 text-sm min-w-[120px]">
+              {loading ? (
+                <Loader2 className="h-4 w-4 text-accent animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4 text-accent" />
+              )}
+              <span>{loading ? 'Detecting...' : displayLocation}</span>
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Radio className="h-3 w-3 text-green-500 animate-pulse" />
