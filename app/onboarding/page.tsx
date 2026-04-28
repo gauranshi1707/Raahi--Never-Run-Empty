@@ -103,7 +103,9 @@ export default function OnboardingPage() {
         <div className="mb-12">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-accent">Raahi</h1>
-            <p className="text-muted-foreground mt-2">Connecting Drivers & Shippers</p>
+            <p className="text-muted-foreground font-medium">
+  Never.Run.Empty
+</p>
           </div>
 
           {/* Progress indicator */}
