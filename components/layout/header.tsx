@@ -1,6 +1,6 @@
 'use client'
 
-import { MapPin, Radio, User, Settings, LogOut, Truck, Package, Loader2 } from 'lucide-react'
+import { MapPin, Radio, User, LogOut, Truck, Package, Loader2 } from 'lucide-react'
 import ThemeToggle from './theme-toggle'
 import Link from 'next/link'
 import { useLocation } from '@/hooks/use-location'
@@ -65,7 +65,9 @@ export default function Header({ userRole = 'driver' }: HeaderProps) {
                   </p>
                 </div>
               </DropdownMenuLabel>
+
               <DropdownMenuSeparator />
+
               <DropdownMenuItem asChild>
                 <Link 
                   href={userRole === 'driver' ? '/shipper' : '/driver'} 
@@ -84,19 +86,16 @@ export default function Header({ userRole = 'driver' }: HeaderProps) {
                   )}
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="flex items-center gap-2 cursor-pointer">
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
+
               <DropdownMenuSeparator />
+
               <DropdownMenuItem asChild>
                 <Link href="/onboarding" className="flex items-center gap-2 cursor-pointer text-destructive">
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
                 </Link>
               </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
