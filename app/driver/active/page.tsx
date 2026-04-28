@@ -2,8 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import Header from '@/components/layout/header'
 import NextLoadCard from '@/components/driver/next-load-card'
+import RouteMap from '@/components/maps/route-map'
 import { MapPin, Navigation, Truck, Loader2 } from 'lucide-react'
 
 // Mock simple distance calculation on client side if needed, or we just rely on store logic but since we fetch from API:
@@ -17,6 +19,7 @@ function ActiveTripContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const loadId = searchParams.get('loadId')
+  const { resolvedTheme } = useTheme()
   
   const [activeTrip, setActiveTrip] = useState<any>(null)
   const [recommendations, setRecommendations] = useState<any[]>([])
@@ -161,6 +164,19 @@ function ActiveTripContent() {
             <p className="font-medium text-accent">{activeTrip.price}</p>
           </div>
         </div>
+      </div>
+
+      {/* Route Map with POI Buttons */}
+      <div className="mb-8">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <MapPin className="h-5 w-5 text-accent" />
+          Route Map
+        </h2>
+        <RouteMap
+          origin={activeTrip.from}
+          destination={activeTrip.to}
+          isDarkMode={resolvedTheme === 'dark'}
+        />
       </div>
 
       {recommendations.length > 0 && (
