@@ -2,7 +2,6 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from 'next-themes'
-import Watermark from '@/components/layout/watermark'
 import 'leaflet/dist/leaflet.css'
 import './globals.css'
 
@@ -41,10 +40,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <Watermark />
-          <div className="relative z-10">
-            {children}
-          </div>
+          {children}
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ThemeProvider>
       </body>

@@ -3,7 +3,6 @@
 import { MapPin, Radio, User, Settings, LogOut, Truck, Package, Loader2 } from 'lucide-react'
 import ThemeToggle from './theme-toggle'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useLocation } from '@/hooks/use-location'
 import {
   DropdownMenu,
@@ -24,23 +23,9 @@ export default function Header({ userRole = 'driver' }: HeaderProps) {
   return (
     <header className="bg-card border-b border-border sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-        <Link href={userRole === 'driver' ? '/driver' : '/shipper'} className="flex items-center mr-4">
-          {/* Light mode logo */}
-          <Image
-            src="/images/raahi-logo-light.jpeg"
-            alt="Raahi"
-            width={36}
-            height={36}
-            className="block dark:hidden rounded-lg object-contain"
-          />
-          {/* Dark mode logo */}
-          <Image
-            src="/images/raahi-logo-dark.png"
-            alt="Raahi"
-            width={36}
-            height={36}
-            className="hidden dark:block rounded-lg object-contain"
-          />
+        <Link href={userRole === 'driver' ? '/driver' : '/shipper'} className="flex items-center gap-2">
+          <span className="text-[26px] font-bold text-accent">Raahi</span>
+          <span className="text-xs text-muted-foreground font-normal hidden sm:inline">Never Run Empty</span>
         </Link>
         
         {userRole === 'driver' && (
