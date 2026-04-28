@@ -1,427 +1,362 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import {
-  GoogleMap,
-  useJsApiLoader,
-  DirectionsRenderer,
-  Marker,
-  InfoWindow,
-} from '@react-google-maps/api'
-import { Fuel, Utensils, Hotel, Loader2, MapPin } from 'lucide-react'
+import { useEffect, useMemo, useRef } from 'react'
+import dynamic from 'next/dynamic'
+import { MapPin, Navigation, Flag } from 'lucide-react'
+import L from 'leaflet'
 
-const libraries: ('places')[] = ['places']
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '100%',
+// City coordinates lookup for Indian cities
+const cityCoordinates: Record<string, [number, number]> = {
+  // Maharashtra
+  'Mumbai': [19.0760, 72.8777],
+  'Mumbai, MH': [19.0760, 72.8777],
+  'Pune': [18.5204, 73.8567],
+  'Pune, MH': [18.5204, 73.8567],
+  'Nashik': [19.9975, 73.7898],
+  'Nashik, MH': [19.9975, 73.7898],
+  'Nagpur': [21.1458, 79.0882],
+  'Nagpur, MH': [21.1458, 79.0882],
+  'Aurangabad': [19.8762, 75.3433],
+  'Thane': [19.2183, 72.9781],
+  'Kolhapur': [16.7050, 74.2433],
+  
+  // Gujarat
+  'Ahmedabad': [23.0225, 72.5714],
+  'Ahmedabad, GJ': [23.0225, 72.5714],
+  'Surat': [21.1702, 72.8311],
+  'Surat, GJ': [21.1702, 72.8311],
+  'Vadodara': [22.3072, 73.1812],
+  'Rajkot': [22.3039, 70.8022],
+  
+  // Karnataka
+  'Bangalore': [12.9716, 77.5946],
+  'Bengaluru': [12.9716, 77.5946],
+  'Mysore': [12.2958, 76.6394],
+  'Hubli': [15.3647, 75.1240],
+  
+  // Tamil Nadu
+  'Chennai': [13.0827, 80.2707],
+  'Chennai, TN': [13.0827, 80.2707],
+  'Coimbatore': [11.0168, 76.9558],
+  'Madurai': [9.9252, 78.1198],
+  
+  // Telangana / Andhra Pradesh
+  'Hyderabad': [17.3850, 78.4867],
+  'Hyderabad, TS': [17.3850, 78.4867],
+  'Visakhapatnam': [17.6868, 83.2185],
+  'Vijayawada': [16.5062, 80.6480],
+  
+  // North India
+  'Delhi': [28.7041, 77.1025],
+  'New Delhi': [28.6139, 77.2090],
+  'Jaipur': [26.9124, 75.7873],
+  'Jaipur, RJ': [26.9124, 75.7873],
+  'Lucknow': [26.8467, 80.9462],
+  'Kanpur': [26.4499, 80.3319],
+  'Agra': [27.1767, 78.0081],
+  'Chandigarh': [30.7333, 76.7794],
+  'Amritsar': [31.6340, 74.8723],
+  
+  // West Bengal / East India
+  'Kolkata': [22.5726, 88.3639],
+  'Kolkata, WB': [22.5726, 88.3639],
+  'Patna': [25.5941, 85.1376],
+  'Ranchi': [23.3441, 85.3096],
+  'Bhubaneswar': [20.2961, 85.8245],
+  
+  // Madhya Pradesh
+  'Indore': [22.7196, 75.8577],
+  'Indore, MP': [22.7196, 75.8577],
+  'Bhopal': [23.2599, 77.4126],
+  'Gwalior': [26.2183, 78.1828],
+  
+  // Kerala / Goa
+  'Kochi': [9.9312, 76.2673],
+  'Thiruvananthapuram': [8.5241, 76.9366],
+  'Goa': [15.2993, 74.1240],
+  'Panaji': [15.4909, 73.8278],
 }
 
-const defaultCenter = {
-  lat: 19.076,
-  lng: 72.8777,
+// Get coordinates for a city name (with fuzzy matching)
+function getCoordinates(cityName: string): [number, number] {
+  // Direct match
+  if (cityCoordinates[cityName]) {
+    return cityCoordinates[cityName]
+  }
+  
+  // Try without state suffix
+  const cityOnly = cityName.split(',')[0].trim()
+  if (cityCoordinates[cityOnly]) {
+    return cityCoordinates[cityOnly]
+  }
+  
+  // Fuzzy match - find city that starts with the input
+  const lowerCity = cityOnly.toLowerCase()
+  for (const [key, coords] of Object.entries(cityCoordinates)) {
+    if (key.toLowerCase().startsWith(lowerCity) || lowerCity.startsWith(key.toLowerCase().split(',')[0])) {
+      return coords
+    }
+  }
+  
+  // Default to Mumbai if not found
+  return [19.0760, 72.8777]
 }
 
-// Map styles for light mode
-const lightMapStyles: google.maps.MapTypeStyle[] = []
-
-// Map styles for dark mode
-const darkMapStyles: google.maps.MapTypeStyle[] = [
-  { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-  {
-    featureType: 'administrative.locality',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#d59563' }],
-  },
-  {
-    featureType: 'poi',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#d59563' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'geometry',
-    stylers: [{ color: '#263c3f' }],
-  },
-  {
-    featureType: 'poi.park',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#6b9a76' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry',
-    stylers: [{ color: '#38414e' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#212a37' }],
-  },
-  {
-    featureType: 'road',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#9ca5b3' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry',
-    stylers: [{ color: '#746855' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'geometry.stroke',
-    stylers: [{ color: '#1f2835' }],
-  },
-  {
-    featureType: 'road.highway',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#f3d19c' }],
-  },
-  {
-    featureType: 'transit',
-    elementType: 'geometry',
-    stylers: [{ color: '#2f3948' }],
-  },
-  {
-    featureType: 'transit.station',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#d59563' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'geometry',
-    stylers: [{ color: '#17263c' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'labels.text.fill',
-    stylers: [{ color: '#515c6d' }],
-  },
-  {
-    featureType: 'water',
-    elementType: 'labels.text.stroke',
-    stylers: [{ color: '#17263c' }],
-  },
-]
-
-interface POI {
-  id: string
-  name: string
-  location: google.maps.LatLngLiteral
-  type: 'fuel' | 'restaurant' | 'hotel'
-  address?: string
-  rating?: number
+// Create custom marker icons
+function createIcon(color: string, label: string) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="
+        background: ${color};
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      ">
+        <span style="
+          transform: rotate(45deg);
+          color: white;
+          font-weight: bold;
+          font-size: 14px;
+        ">${label}</span>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+    popupAnchor: [0, -32],
+  })
 }
 
 interface RouteMapProps {
   origin: string
   destination: string
+  nextStop?: string
   isDarkMode?: boolean
 }
 
-export default function RouteMap({ origin, destination, isDarkMode = false }: RouteMapProps) {
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null)
-  const [map, setMap] = useState<google.maps.Map | null>(null)
-  const [pois, setPois] = useState<POI[]>([])
-  const [activePOIType, setActivePOIType] = useState<'fuel' | 'restaurant' | 'hotel' | null>(null)
-  const [selectedPOI, setSelectedPOI] = useState<POI | null>(null)
-  const [isLoadingPOI, setIsLoadingPOI] = useState(false)
+// Dynamically import MapContainer to avoid SSR issues
+const MapContainer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  { ssr: false }
+)
 
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+const TileLayer = dynamic(
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  { ssr: false }
+)
 
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: apiKey || '',
-    libraries,
-  })
+const Marker = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Marker),
+  { ssr: false }
+)
 
-  const onLoad = useCallback((map: google.maps.Map) => {
-    setMap(map)
-  }, [])
+const Popup = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Popup),
+  { ssr: false }
+)
 
-  const onUnmount = useCallback(() => {
-    setMap(null)
-  }, [])
+const Polyline = dynamic(
+  () => import('react-leaflet').then((mod) => mod.Polyline),
+  { ssr: false }
+)
 
-  // Calculate route when component mounts or origin/destination changes
+// Component to fit bounds after map loads
+function FitBoundsComponent({ bounds }: { bounds: L.LatLngBoundsExpression }) {
+  const map = useMapRef()
+  
   useEffect(() => {
-    if (!isLoaded || !origin || !destination) return
-
-    const directionsService = new google.maps.DirectionsService()
-
-    directionsService.route(
-      {
-        origin,
-        destination,
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          setDirections(result)
-        }
-      }
-    )
-  }, [isLoaded, origin, destination])
-
-  // Search for POIs along the route
-  const searchPOIs = useCallback(
-    (type: 'fuel' | 'restaurant' | 'hotel') => {
-      if (!map || !directions) return
-
-      // Toggle off if same type clicked
-      if (activePOIType === type) {
-        setActivePOIType(null)
-        setPois([])
-        setSelectedPOI(null)
-        return
-      }
-
-      setIsLoadingPOI(true)
-      setActivePOIType(type)
-      setPois([])
-      setSelectedPOI(null)
-
-      const route = directions.routes[0]
-      if (!route) {
-        setIsLoadingPOI(false)
-        return
-      }
-
-      // Get points along the route to search
-      const path = route.overview_path
-      const searchPoints: google.maps.LatLng[] = []
-
-      // Sample points along the route (every ~50km)
-      const totalDistance = route.legs.reduce((acc, leg) => acc + (leg.distance?.value || 0), 0)
-      const interval = Math.max(1, Math.floor(path.length / Math.ceil(totalDistance / 50000)))
-
-      for (let i = 0; i < path.length; i += interval) {
-        searchPoints.push(path[i])
-      }
-
-      const placesService = new google.maps.places.PlacesService(map)
-      const typeMapping = {
-        fuel: 'gas_station',
-        restaurant: 'restaurant',
-        hotel: 'lodging',
-      }
-
-      const allResults: POI[] = []
-      let completedSearches = 0
-
-      searchPoints.forEach((point) => {
-        const request: google.maps.places.PlaceSearchRequest = {
-          location: point,
-          radius: 5000,
-          type: typeMapping[type],
-        }
-
-        placesService.nearbySearch(request, (results, status) => {
-          completedSearches++
-
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            results.slice(0, 3).forEach((place) => {
-              if (place.place_id && place.geometry?.location) {
-                const poi: POI = {
-                  id: place.place_id,
-                  name: place.name || 'Unknown',
-                  location: {
-                    lat: place.geometry.location.lat(),
-                    lng: place.geometry.location.lng(),
-                  },
-                  type,
-                  address: place.vicinity,
-                  rating: place.rating,
-                }
-
-                // Avoid duplicates
-                if (!allResults.find((p) => p.id === poi.id)) {
-                  allResults.push(poi)
-                }
-              }
-            })
-          }
-
-          if (completedSearches === searchPoints.length) {
-            setPois(allResults)
-            setIsLoadingPOI(false)
-          }
-        })
-      })
-    },
-    [map, directions, activePOIType]
-  )
-
-  const getMarkerIcon = (type: 'fuel' | 'restaurant' | 'hotel') => {
-    const colors = {
-      fuel: '#ef4444',
-      restaurant: '#f97316',
-      hotel: '#3b82f6',
+    if (map) {
+      map.fitBounds(bounds, { padding: [50, 50] })
     }
-    return {
-      path: google.maps.SymbolPath.CIRCLE,
-      fillColor: colors[type],
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 2,
-      scale: 8,
-    }
-  }
+  }, [map, bounds])
+  
+  return null
+}
 
-  // Fallback UI when API key is missing
-  if (!apiKey) {
+// Hook to get map reference
+function useMapRef() {
+  const mapRef = useRef<L.Map | null>(null)
+  
+  useEffect(() => {
+    // Access map through the container
+    const container = document.querySelector('.leaflet-container')
+    if (container && (container as any)._leaflet_map) {
+      mapRef.current = (container as any)._leaflet_map
+    }
+  }, [])
+  
+  return mapRef.current
+}
+
+// Inner map component that uses the map hooks
+const MapContent = dynamic(
+  () => Promise.resolve(({ 
+    originCoords, 
+    destCoords, 
+    nextStopCoords,
+    origin,
+    destination,
+    nextStop,
+    isDarkMode
+  }: {
+    originCoords: [number, number]
+    destCoords: [number, number]
+    nextStopCoords?: [number, number]
+    origin: string
+    destination: string
+    nextStop?: string
+    isDarkMode: boolean
+  }) => {
+    const { useMap } = require('react-leaflet')
+    
+    function FitBounds() {
+      const map = useMap()
+      
+      useEffect(() => {
+        const points: [number, number][] = [originCoords, destCoords]
+        if (nextStopCoords) points.push(nextStopCoords)
+        
+        const bounds = L.latLngBounds(points.map(p => L.latLng(p[0], p[1])))
+        map.fitBounds(bounds, { padding: [50, 50] })
+      }, [map])
+      
+      return null
+    }
+    
+    // Create route path
+    const routePath: [number, number][] = nextStopCoords 
+      ? [originCoords, destCoords, nextStopCoords]
+      : [originCoords, destCoords]
+    
+    // Create icons
+    const originIcon = createIcon('#22c55e', 'A')
+    const destIcon = createIcon('#ef4444', 'B')
+    const nextIcon = createIcon('#3b82f6', 'C')
+    
     return (
-      <div className="flex flex-col gap-4">
-        <div className="relative w-full h-64 bg-muted rounded-xl overflow-hidden flex items-center justify-center">
-          <div className="text-center p-6">
-            <MapPin className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground text-sm">
-              Google Maps API key not configured
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable maps
-            </p>
-            <div className="mt-4 p-3 bg-card rounded-lg text-left">
-              <p className="text-sm font-medium">{origin}</p>
-              <p className="text-xs text-muted-foreground">to</p>
-              <p className="text-sm font-medium">{destination}</p>
-            </div>
-          </div>
-        </div>
-        <POIButtons
-          activePOIType={null}
-          isLoadingPOI={false}
-          onSearch={() => {}}
-          disabled
+      <>
+        <FitBounds />
+        
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url={isDarkMode 
+            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          }
         />
-      </div>
+        
+        {/* Route polyline */}
+        <Polyline
+          positions={routePath}
+          pathOptions={{
+            color: '#d97706',
+            weight: 4,
+            opacity: 0.8,
+            dashArray: '10, 10',
+          }}
+        />
+        
+        {/* Origin marker */}
+        <Marker position={originCoords} icon={originIcon}>
+          <Popup>
+            <div className="text-sm">
+              <p className="font-semibold text-green-600">A - Origin</p>
+              <p>{origin}</p>
+            </div>
+          </Popup>
+        </Marker>
+        
+        {/* Destination marker */}
+        <Marker position={destCoords} icon={destIcon}>
+          <Popup>
+            <div className="text-sm">
+              <p className="font-semibold text-red-600">B - Destination</p>
+              <p>{destination}</p>
+            </div>
+          </Popup>
+        </Marker>
+        
+        {/* Next stop marker (if provided) */}
+        {nextStopCoords && nextStop && (
+          <Marker position={nextStopCoords} icon={nextIcon}>
+            <Popup>
+              <div className="text-sm">
+                <p className="font-semibold text-blue-600">C - Next Load</p>
+                <p>{nextStop}</p>
+              </div>
+            </Popup>
+          </Marker>
+        )}
+      </>
     )
-  }
+  }),
+  { ssr: false }
+)
 
-  if (loadError) {
-    return (
-      <div className="w-full h-64 bg-muted rounded-xl flex items-center justify-center">
-        <p className="text-muted-foreground">Error loading maps</p>
-      </div>
-    )
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="w-full h-64 bg-muted rounded-xl flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
-    )
-  }
-
+export default function RouteMap({ origin, destination, nextStop, isDarkMode = false }: RouteMapProps) {
+  const originCoords = useMemo(() => getCoordinates(origin), [origin])
+  const destCoords = useMemo(() => getCoordinates(destination), [destination])
+  const nextStopCoords = useMemo(() => nextStop ? getCoordinates(nextStop) : undefined, [nextStop])
+  
+  // Calculate center point
+  const center = useMemo((): [number, number] => {
+    const lat = (originCoords[0] + destCoords[0]) / 2
+    const lng = (originCoords[1] + destCoords[1]) / 2
+    return [lat, lng]
+  }, [originCoords, destCoords])
+  
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative w-full h-64 rounded-xl overflow-hidden">
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={defaultCenter}
-          zoom={10}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          options={{
-            styles: isDarkMode ? darkMapStyles : lightMapStyles,
-            disableDefaultUI: true,
-            zoomControl: true,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: false,
-          }}
+      {/* Map container */}
+      <div className="relative w-full h-[400px] rounded-xl overflow-hidden border border-border shadow-sm">
+        <MapContainer
+          center={center}
+          zoom={7}
+          scrollWheelZoom={true}
+          className="w-full h-full z-0"
+          style={{ background: isDarkMode ? '#1a1a2e' : '#f5f5f5' }}
         >
-          {directions && (
-            <DirectionsRenderer
-              directions={directions}
-              options={{
-                suppressMarkers: false,
-                polylineOptions: {
-                  strokeColor: '#d97706',
-                  strokeWeight: 5,
-                  strokeOpacity: 0.8,
-                },
-              }}
-            />
-          )}
-
-          {pois.map((poi) => (
-            <Marker
-              key={poi.id}
-              position={poi.location}
-              icon={getMarkerIcon(poi.type)}
-              onClick={() => setSelectedPOI(poi)}
-            />
-          ))}
-
-          {selectedPOI && (
-            <InfoWindow
-              position={selectedPOI.location}
-              onCloseClick={() => setSelectedPOI(null)}
-            >
-              <div className="p-1 text-foreground">
-                <p className="font-semibold text-sm">{selectedPOI.name}</p>
-                {selectedPOI.address && (
-                  <p className="text-xs text-muted-foreground mt-1">{selectedPOI.address}</p>
-                )}
-                {selectedPOI.rating && (
-                  <p className="text-xs text-accent mt-1">Rating: {selectedPOI.rating}/5</p>
-                )}
-              </div>
-            </InfoWindow>
-          )}
-        </GoogleMap>
-
-        {isLoadingPOI && (
-          <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-accent" />
+          <MapContent
+            originCoords={originCoords}
+            destCoords={destCoords}
+            nextStopCoords={nextStopCoords}
+            origin={origin}
+            destination={destination}
+            nextStop={nextStop}
+            isDarkMode={isDarkMode}
+          />
+        </MapContainer>
+      </div>
+      
+      {/* Route legend */}
+      <div className="flex flex-wrap gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+            <span className="text-white text-xs font-bold">A</span>
+          </div>
+          <span className="text-muted-foreground">Origin: {origin}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+            <span className="text-white text-xs font-bold">B</span>
+          </div>
+          <span className="text-muted-foreground">Destination: {destination}</span>
+        </div>
+        {nextStop && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">C</span>
+            </div>
+            <span className="text-muted-foreground">Next Load: {nextStop}</span>
           </div>
         )}
       </div>
-
-      <POIButtons
-        activePOIType={activePOIType}
-        isLoadingPOI={isLoadingPOI}
-        onSearch={searchPOIs}
-      />
-    </div>
-  )
-}
-
-interface POIButtonsProps {
-  activePOIType: 'fuel' | 'restaurant' | 'hotel' | null
-  isLoadingPOI: boolean
-  onSearch: (type: 'fuel' | 'restaurant' | 'hotel') => void
-  disabled?: boolean
-}
-
-function POIButtons({ activePOIType, isLoadingPOI, onSearch, disabled = false }: POIButtonsProps) {
-  const buttons = [
-    { type: 'fuel' as const, label: 'Fuel Stations', icon: Fuel, color: 'text-red-500' },
-    { type: 'restaurant' as const, label: 'Restaurants', icon: Utensils, color: 'text-orange-500' },
-    { type: 'hotel' as const, label: 'Hotels', icon: Hotel, color: 'text-blue-500' },
-  ]
-
-  return (
-    <div className="flex gap-2 flex-wrap">
-      {buttons.map(({ type, label, icon: Icon, color }) => (
-        <button
-          key={type}
-          onClick={() => onSearch(type)}
-          disabled={disabled || isLoadingPOI}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activePOIType === type
-              ? 'bg-accent text-accent-foreground'
-              : 'bg-secondary hover:bg-secondary/80 text-secondary-foreground'
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-        >
-          <Icon className={`h-4 w-4 ${activePOIType === type ? '' : color}`} />
-          <span>{label}</span>
-        </button>
-      ))}
     </div>
   )
 }

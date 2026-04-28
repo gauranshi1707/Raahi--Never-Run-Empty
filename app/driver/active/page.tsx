@@ -166,7 +166,7 @@ function ActiveTripContent() {
         </div>
       </div>
 
-      {/* Route Map with POI Buttons */}
+      {/* Route Map */}
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
           <MapPin className="h-5 w-5 text-accent" />
@@ -175,6 +175,7 @@ function ActiveTripContent() {
         <RouteMap
           origin={activeTrip.from}
           destination={activeTrip.to}
+          nextStop={recommendations[0]?.from}
           isDarkMode={resolvedTheme === 'dark'}
         />
       </div>
