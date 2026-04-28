@@ -104,7 +104,7 @@ export default function OnboardingPage() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-accent">Raahi</h1>
             <p className="text-muted-foreground font-medium">
-  Never.Run.Empty
+  Never Run Empty
 </p>
           </div>
 
